@@ -1,0 +1,39 @@
+.current-min-max-container {
+    border: 1px solid #999999;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 500px;
+    margin-bottom: 10px;
+}
+
+.emoji {
+    text-align: left;
+    font-size: 1.8em;
+    width: 30px;
+}
+
+.current-value {
+    text-align: center;
+    width: calc(100% - 190px - 30px);
+    min-width: 100px;
+    font-size: 2.5em;
+    font-weight: bold;
+}
+
+.small .current-value {
+    font-size: 1.5em;
+    line-height: 2.25em;
+}
+
+.min-max-container {
+    text-align: left;
+    width: 160px;
+}
+
+.expanded .min-max-container {
+    display: block;
+    /* text-align: center; */
+    width: 100%;
+    padding-bottom: 0.5em;
+    padding-left: 6em;
+}
