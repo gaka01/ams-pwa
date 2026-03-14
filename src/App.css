@@ -1,20 +1,35 @@
 * {
   box-sizing: border-box;
   font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-  /* transition: all 2s; */
+  transition: color 1000ms, background-color 200ms;
+}
+
+body {
+  margin: 0;
+}
+
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  background-color: #111111;
+  color: #ffffff
+}
+
+.app-container.white-theme {
+  background-color: #eee;
+  color: #000000;
 }
 
 p, span, h1, h2, h3, h4, h5 {
-  color: #ffffff;
   margin: 0;
 }
 
 a {
-  color: lightblue
+  color: #4EC1F5
 }
 
 a:visited {
-  color: lightblue
+  color: #4EC1F5
 }
 
 .center-container {
@@ -37,13 +52,11 @@ a:visited {
   opacity: 0.3;
 }
 
-.reload-button {
-  position: fixed;
+.theme-switcher {
+  position: absolute;
+  right: 0;
+  padding: 10px;
   font-size: 2em;
-  bottom: 0.5em;
-  right: 0.5em;
-  padding: 1em;
-  border: 1px solid #777777;
-  border-radius: 10px;
   cursor: pointer;
 }
+

@@ -9,6 +9,9 @@ import InstallPWA from './components/InstallPWA';
 
 function App() {
   const [loading, setLoading] = useState(false);
+  const [isWhiteTheme, setIsWhiteTheme] = useState(
+    localStorage.getItem('is-white-theme') === 'true' || !window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
   const [/** @type {WeatherData} */ weather, setWeather] = useState(null);
 
   const updateData = useCallback(() => {
@@ -40,6 +43,14 @@ function App() {
     }
   }, [weather, updateData]);
 
+  function updateTheme() {
+      setIsWhiteTheme(prev => {
+        const newValue = !prev;
+        localStorage.setItem('is-white-theme', newValue ? "true" : "false");
+        return newValue;
+      });
+  }
+
   function renderTemp(dataPoint) {
     return `${dataPoint}${Constants.metadata.units.temperature.displayText}`
   }
@@ -52,14 +63,19 @@ function App() {
     return `${dataPoint}${Constants.metadata.units.pressure.displayText}`
   }
 
+  function renderWind(dataPoint) {
+    return `${dataPoint} ${Constants.metadata.units.windSpeed.displayText}`
+  }
+
   const dataAvailable = weather !== null;
   const isDataFresh = Date.now() - weather?.updateDate < 1000 * 60 * 30;
 
   return (
-    <>
+    <div className={`app-container ${isWhiteTheme ? 'white-theme' : ''}`}>
+      <div className='theme-switcher' onClick={updateTheme}>{isWhiteTheme ? '⚫' : '⚪'}</div>
       <div className='center-container'>
         {dataAvailable && <>
-            <p style={{marginBottom: "1em", color: isDataFresh ? '' : 'red'}}>
+            <p style={{marginTop: "1.5em", marginBottom: "1.5em", color: isDataFresh ? '' : 'red'}}>
               {loading ? "Зареждане..." : `измервания от ${DateTime.fromMillis(weather.updateDate).toFormat('yyyy-MM-dd HH:mm:ss')}`}
             </p>
 
@@ -83,6 +99,15 @@ function App() {
             />
 
             <CurrentMinMaxContainer
+              emoji="🌬️"
+              small
+              current={renderWind(weather.current.wind.speed)}
+              maxValue={renderWind(weather.dailyMaximums.wind.value)}
+              maxDate={0}
+              minDate={0}
+            />
+
+            <CurrentMinMaxContainer
               emoji={weather.current.pressure.trend === 'falling' ? "📉" : "📈"}
               small
               current={renderPressure(weather.current.pressure.value)}
@@ -97,7 +122,7 @@ function App() {
         <p>данни от <a href="http://46.35.176.12">АМС Велико Търново</a></p>
         <InstallPWA />
       </div>
-    </>
+    </div>
   )
 }
 
