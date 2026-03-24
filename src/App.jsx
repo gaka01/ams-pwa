@@ -9,8 +9,8 @@ import InstallPWA from './components/InstallPWA';
 
 function App() {
   const [loading, setLoading] = useState(false);
-  const [isWhiteTheme, setIsWhiteTheme] = useState(
-    localStorage.getItem('is-white-theme') === 'true' || !window.matchMedia('(prefers-color-scheme: dark)').matches
+  const [theme, setTheme] = useState(
+    localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'white')
   );
   const [/** @type {WeatherData} */ weather, setWeather] = useState(null);
 
@@ -44,9 +44,9 @@ function App() {
   }, [weather, updateData]);
 
   function updateTheme() {
-      setIsWhiteTheme(prev => {
-        const newValue = !prev;
-        localStorage.setItem('is-white-theme', newValue ? "true" : "false");
+      setTheme(prev => {
+        const newValue = prev === 'white' ? 'dark' : 'white';
+        localStorage.setItem('theme', newValue);
         return newValue;
       });
   }
@@ -71,8 +71,8 @@ function App() {
   const isDataFresh = Date.now() - weather?.updateDate < 1000 * 60 * 30;
 
   return (
-    <div className={`app-container ${isWhiteTheme ? 'white-theme' : ''}`}>
-      <div className='theme-switcher' onClick={updateTheme}>{isWhiteTheme ? '⚫' : '⚪'}</div>
+    <div className={`app-container ${theme}-theme`}>
+      <div className='theme-switcher' onClick={updateTheme}>{theme === 'white' ? '⚫' : '⚪'}</div>
       <div className='center-container'>
         {dataAvailable && <>
             <p style={{marginTop: "1.5em", marginBottom: "1.5em", color: isDataFresh ? '' : 'red'}}>
