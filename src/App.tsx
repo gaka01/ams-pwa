@@ -1,18 +1,18 @@
 import { startTransition, useCallback, useEffect, useState } from 'react'
 import './App.css'
-import {Constants} from "../constants";
-import {WebsiteParse} from "../data/website-parse";
-import "../typedef";
-import CurrentMinMaxContainer from './components/CurrentMinMaxContainer';
+import { Constants } from "../constants.js";
+import { WebsiteParse } from "../data/website-parse.js";
+import type { WeatherData } from "../types.js";
+import CurrentMinMaxContainer from './components/CurrentMinMaxContainer.js';
 import { DateTime } from 'luxon';
-import InstallPWA from './components/InstallPWA';
+import InstallPWA from './components/InstallPWA.js';
 
 function App() {
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState(
     localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'white')
   );
-  const [/** @type {WeatherData} */ weather, setWeather] = useState(null);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
 
   const updateData = useCallback(() => {
     startTransition(() => setLoading(true));
@@ -28,58 +28,55 @@ function App() {
     const interval = setInterval(updateData, 1000 * 60 * 5);
     return () => clearInterval(interval);
   }, [updateData]);
-  
+
   useEffect(() => {
     const listener = () => {
-      if (!document.hidden && (!weather || Date.now() - weather?.updateDate >= 1000 * 60 * 30)) {
+      if (!document.hidden && (!weather || Date.now() - weather.updateDate >= 1000 * 60 * 30)) {
         updateData();
       }
     };
-    
-    document.addEventListener("visibilitychange", listener);
 
-    return () => {
-      document.removeEventListener("visibilitychange", listener);
-    }
+    document.addEventListener("visibilitychange", listener);
+    return () => document.removeEventListener("visibilitychange", listener);
   }, [weather, updateData]);
 
   function updateTheme() {
-      setTheme(prev => {
-        const newValue = prev === 'white' ? 'dark' : 'white';
-        localStorage.setItem('theme', newValue);
-        return newValue;
-      });
+    setTheme(prev => {
+      const newValue = prev === 'white' ? 'dark' : 'white';
+      localStorage.setItem('theme', newValue);
+      return newValue;
+    });
   }
 
-  function renderTemp(dataPoint) {
-    return `${dataPoint}${Constants.metadata.units.temperature.displayText}`
+  function renderTemp(value: number | undefined) {
+    return value !== undefined ? `${value}${Constants.metadata.units.temperature.displayText}` : '';
   }
 
-  function renderHumidity(dataPoint) {
-    return `${dataPoint}${Constants.metadata.units.humidity.displayText}`
+  function renderHumidity(value: number | undefined) {
+    return value !== undefined ? `${value}${Constants.metadata.units.humidity.displayText}` : '';
   }
 
-  function renderPressure(dataPoint) {
-    return `${dataPoint}${Constants.metadata.units.pressure.displayText}`
+  function renderPressure(value: number | undefined) {
+    return value !== undefined ? `${value}${Constants.metadata.units.pressure.displayText}` : '';
   }
 
-  function renderWind(dataPoint) {
-    return `${dataPoint} ${Constants.metadata.units.windSpeed.displayText}`
+  function renderWind(value: number | undefined) {
+    return value !== undefined ? `${value} ${Constants.metadata.units.windSpeed.displayText}` : '';
   }
 
   const dataAvailable = weather !== null;
-  const isDataFresh = Date.now() - weather?.updateDate < 1000 * 60 * 30;
+  const isDataFresh = Date.now() - (weather?.updateDate ?? 0) < 1000 * 60 * 30;
 
   return (
     <div className={`app-container ${theme}-theme`}>
       <div className='theme-switcher' onClick={updateTheme}>{theme === 'white' ? '⚫' : '⚪'}</div>
       <div className='center-container'>
         {dataAvailable && <>
-            <p style={{marginTop: "1.5em", marginBottom: "1.5em", color: isDataFresh ? '' : 'red'}}>
-              {loading ? "Зареждане..." : `измервания от ${DateTime.fromMillis(weather.updateDate).toFormat('yyyy-MM-dd HH:mm:ss')}`}
-            </p>
+          <p style={{ marginTop: "1.5em", marginBottom: "1.5em", color: isDataFresh ? '' : 'red' }}>
+            {loading ? "Зареждане..." : `измервания от ${DateTime.fromMillis(weather.updateDate).toFormat('yyyy-MM-dd HH:mm:ss')}`}
+          </p>
 
-            <div className={`data-points center-container ${!isDataFresh || loading ? 'old' : ''}`}>
+          <div className={`data-points center-container ${!isDataFresh || loading ? 'old' : ''}`}>
             <CurrentMinMaxContainer
               emoji={"🌡️"}
               current={renderTemp(weather.current.temperature)}
@@ -103,8 +100,8 @@ function App() {
               small
               current={renderWind(weather.current.wind.speed)}
               maxValue={renderWind(weather.dailyMaximums.wind.value)}
-              maxDate={0}
-              minDate={0}
+              maxDate={weather.dailyMaximums.wind.date}
+              minDate={undefined}
             />
 
             <CurrentMinMaxContainer
@@ -116,7 +113,7 @@ function App() {
               maxValue={renderPressure(weather.dailyMaximums.pressure.value)}
               maxDate={weather.dailyMaximums.pressure.date}
             />
-            </div>
+          </div>
         </>}
 
         <p>данни от <a href="http://46.35.176.12">АМС Велико Търново</a></p>

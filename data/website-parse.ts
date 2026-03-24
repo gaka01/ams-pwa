@@ -1,25 +1,18 @@
 import { DateTime } from "luxon";
 import { safeInvoke } from "../utils/function-utils.js";
 import { Constants } from "../constants.js";
+import type { WeatherData, DailyExtreme } from "../types.js";
 
-/**
- * @param {string} rawData
- * @returns 
- */
-function parse(rawData) {
+function parse(rawData: ArrayBuffer): WeatherData {
     return parseData(fixEncoding(rawData));
 }
 
-/**
- * @param {string} data 
- * @returns {WeatherData}
- */
-function parseData(data) {
-    const updateDate = parseUpdateDate(getText(data, 'Измервания от'));
+function parseData(data: string): WeatherData {
+    const updateDate = parseUpdateDate(getText(data, 'Измервания от')) ?? 0;
 
     return {
-        updateDate: updateDate,
-        isLive: Date.now() - updateDate < 1800000, //not older than 30 mins
+        updateDate,
+        isLive: Date.now() - updateDate < 1800000,
         current: {
             temperature: parseTemperature(getText(data, 'Температура', 'Температура')),
             humidity: parseHumidity(getText(data, 'Влажност', 'Влажност')),
@@ -45,7 +38,7 @@ function parseData(data) {
                 heatIndex: parseTemperature(getText(data, 'Heat Index:')),
             }
         },
-        
+
         dailyMaximums: {
             temperature: parseValueAndDate(getText(data, 'Макс. температура'), parseTemperature, updateDate),
             humidity: parseValueAndDate(getText(data, 'Макс.', 'влажност'), parseHumidity, updateDate),
@@ -59,51 +52,47 @@ function parseData(data) {
             temperature: parseValueAndDate(getText(data, 'температура', 'Мин.'), parseTemperature, updateDate),
             humidity: parseValueAndDate(getText(data, 'Мин.', 'влажност'), parseHumidity, updateDate),
             pressure: parseValueAndDate(getText(data, 'Мин. н', 'алягане'), parsePressure, updateDate),
-            dewPoint: parseValueAndDate(getText(data, 'оросяване', 'Мин. стойност'), parseTemperature, updateDate)
+            dewPoint: parseValueAndDate(getText(data, 'оросяване', 'Мин. стойност'), parseTemperature, updateDate),
         }
-    }
+    };
 }
 
-function fixEncoding(input) {
+function fixEncoding(input: ArrayBuffer): string {
     const decoder = new TextDecoder('windows-1251');
     const decodedString = decoder.decode(input);
-
-    const encoder = new TextEncoder('utf-8');
+    const encoder = new TextEncoder();
     const utf8Bytes = encoder.encode(decodedString);
-
-    const utf8Str = new TextDecoder('utf-8').decode(utf8Bytes);
-
-    return utf8Str;
+    return new TextDecoder('utf-8').decode(utf8Bytes);
 }
 
-function parseTemperature(textData) {
+function parseTemperature(textData: string | null): number | undefined {
     return safeInvoke(() => {
-        const cleanTextData = megatrim(textData.substring(0, textData.indexOf('°C')));
+        const cleanTextData = megatrim(textData!.substring(0, textData!.indexOf('°C')));
         return Number.parseFloat(cleanTextData);
     });
 }
 
-function parseHumidity(textData) {
+function parseHumidity(textData: string | null): number | undefined {
     return safeInvoke(() => {
-        const valueString = megatrim(textData.substring(0, textData.indexOf('%')));
+        const valueString = megatrim(textData!.substring(0, textData!.indexOf('%')));
         return Number.parseInt(valueString);
     });
 }
 
-function parsePressure(textData) {
+function parsePressure(textData: string | null): number | undefined {
     return safeInvoke(() => {
-        const valueString = megatrim(textData.substring(0, textData.indexOf('hPa')));
+        const valueString = megatrim(textData!.substring(0, textData!.indexOf('hPa')));
         return Number.parseFloat(valueString);
     });
 }
 
-function parsePressureTrend(textData) {
+function parsePressureTrend(textData: string | null): string | undefined {
     return safeInvoke(() => {
-        return megatrim(textData.substring(textData.indexOf('/') + 1));
+        return megatrim(textData!.substring(textData!.indexOf('/') + 1));
     });
 }
 
-function parseDate(dateString) {
+function parseDate(dateString: string): number | undefined {
     return safeInvoke(() => {
         const valueString = megatrim(dateString);
         const day = Number.parseInt(valueString.substring(0, 2));
@@ -113,93 +102,88 @@ function parseDate(dateString) {
         const minute = Number.parseInt(valueString.substring(12, 14));
         return DateTime.fromObject({
             year: 2000 + year,
-            month: month,
-            day: day,
-            hour: hour,
-            minute: minute
+            month,
+            day,
+            hour,
+            minute,
         }).setZone(Constants.dataTimezone).toMillis();
     });
 }
 
-function parseTime(temeString, currentDate) {
+function parseTime(timeString: string, currentDate: number): number | undefined {
     return safeInvoke(() => {
-        const valueString = megatrim(temeString);
-        const hour=Number.parseInt(valueString.substring(0,2));
-        const minute=Number.parseInt(valueString.substring(3,5));
+        const valueString = megatrim(timeString);
+        const hour = Number.parseInt(valueString.substring(0, 2));
+        const minute = Number.parseInt(valueString.substring(3, 5));
         return DateTime.fromMillis(currentDate)
-            .set({hour: hour, minute: minute})
+            .set({ hour, minute })
             .setZone(Constants.dataTimezone)
             .toMillis();
     });
 }
 
-function parseUpdateDate(textData) {
-    return parseDate(textData.substring(1));
+function parseUpdateDate(textData: string | null): number | undefined {
+    return textData ? parseDate(textData.substring(1)) : undefined;
 }
 
-function parseWindSpeed(textData) {
+function parseWindSpeed(textData: string | null): number | undefined {
     return safeInvoke(() => {
-        const valueString = megatrim(textData.substring(textData.indexOf('&nbsp;&nbsp;') , textData.indexOf('m/s')));
+        const valueString = megatrim(textData!.substring(textData!.indexOf('&nbsp;&nbsp;'), textData!.indexOf('m/s')));
         return Number.parseFloat(valueString);
     });
 }
 
-function parseWindDirection(textData) {
+function parseWindDirection(textData: string | null): string | undefined {
     return safeInvoke(() => {
-        return megatrim(textData.substring(0, textData.indexOf('&nbsp;')));
+        return megatrim(textData!.substring(0, textData!.indexOf('&nbsp;')));
     });
 }
 
-function parseSunRadiation(textData) {
+function parseSunRadiation(textData: string | null): number | undefined {
     return safeInvoke(() => {
-        return Number.parseInt(megatrim(textData.substring(textData.indexOf('W/m?'))));
+        return Number.parseInt(megatrim(textData!.substring(textData!.indexOf('W/m?'))));
     });
 }
 
-function parseRainAmmount(textData) {
+function parseRainAmmount(textData: string | null): number | undefined {
     return safeInvoke(() => {
-        return Number.parseFloat(megatrim(textData.substring(0, textData.indexOf('mm'))));
+        return Number.parseFloat(megatrim(textData!.substring(0, textData!.indexOf('mm'))));
     });
 }
 
-function parseValueAndDate(textData, valueParser, currentDate) {
+function parseValueAndDate(
+    textData: string | null,
+    valueParser: (text: string | null) => number | undefined,
+    currentDate: number
+): DailyExtreme {
     return safeInvoke(() => ({
         value: valueParser(textData),
-        date: parseTime(textData.substring(textData.indexOf('в') + 1), currentDate)
-    }));
+        date: parseTime(textData!.substring(textData!.indexOf('в') + 1), currentDate),
+    })) ?? { value: undefined, date: undefined };
 }
 
-/**
- * 
- * @param {string} string 
- * @return {string}
- */
-function megatrim(string) {
+function megatrim(string: string): string {
     return string.replaceAll('&nbsp;', '').trim();
 }
 
-/**
- * @param {string} data 
- * @param {...string} before 
- */
-function getText(data, ...before) {
+function getText(data: string, ...before: string[]): string | null {
     let relevantData = data;
     before.forEach(bef => {
         relevantData = relevantData.substring(relevantData.indexOf(bef) + bef.length);
     });
-    
+
     while (true) {
         const startIndex = relevantData.indexOf('>') + 1;
         const endIndex = relevantData.indexOf('<', startIndex);
         if (startIndex < 0 || endIndex < 0)
             return null;
         const text = relevantData.substring(startIndex, endIndex).trim();
-        if(text)
+        if (text)
             return text;
         relevantData = relevantData.substring(endIndex + 1);
     }
 }
 
 export const WebsiteParse = {
-    parse: parse
-}
+    parse,
+};
